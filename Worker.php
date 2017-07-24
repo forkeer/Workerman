@@ -33,7 +33,7 @@ class Worker
      *
      * @var string
      */
-    const VERSION = '3.4.2';
+    const VERSION = '3.4.6';
 
     /**
      * Status starting.
@@ -643,7 +643,7 @@ class Worker
         self::log("Workerman[$start_file] $command $mode");
 
         // Get master process PID.
-        $master_pid      = @file_get_contents(self::$pidFile);
+        $master_pid      = is_file(self::$pidFile) ? file_get_contents(self::$pidFile) : 0;
         $master_is_alive = $master_pid && @posix_kill($master_pid, 0);
         // Master is still alive?
         if ($master_is_alive) {
@@ -1306,7 +1306,7 @@ class Worker
     public static function checkErrors()
     {
         if (self::STATUS_SHUTDOWN != self::$_status) {
-            $error_msg = "WORKER EXIT UNEXPECTED ";
+            $error_msg = 'Worker['. posix_getpid() .'] process terminated with ';
             $errors    = error_get_last();
             if ($errors && ($errors['type'] === E_ERROR ||
                     $errors['type'] === E_PARSE ||
@@ -1314,7 +1314,9 @@ class Worker
                     $errors['type'] === E_COMPILE_ERROR ||
                     $errors['type'] === E_RECOVERABLE_ERROR)
             ) {
-                $error_msg .= self::getErrorType($errors['type']) . " {$errors['message']} in {$errors['file']} on line {$errors['line']}";
+                $error_msg .= self::getErrorType($errors['type']) . " \"{$errors['message']} in {$errors['file']} on line {$errors['line']}\"";
+            } else {
+                $error_msg .= 'exit()/die(). Please do not call exit()/die() in workerman.';
             }
             self::log($error_msg);
         }
